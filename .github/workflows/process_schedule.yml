@@ -1,0 +1,47 @@
+name: Process Schedule Image
+
+on:
+  push:
+    paths:
+      - 'schedules/**'
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Find new schedule image
+        id: find_image
+        run: |
+          IMAGE=$(git diff --name-only HEAD~1 HEAD -- 'schedules/**' | grep -E '\.(png|jpg|jpeg|PNG|JPG|JPEG)' | head -1)
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          echo "Found image: $IMAGE"
+
+      - name: Process image with Claude
+        if: steps.find_image.outputs.image != ''
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python process_schedule.py "${{ steps.find_image.outputs.image }}"
+
+      - name: Commit updated calendar
+        if: steps.find_image.outputs.image != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manukov.ics
+          git diff --staged --quiet || git commit -m "Update calendar from $(basename ${{ steps.find_image.outputs.image }})"
+          git push
