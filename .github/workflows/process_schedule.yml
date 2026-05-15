@@ -26,7 +26,7 @@ jobs:
       - name: Find new schedule image
         id: find_image
         run: |
-          IMAGE=$(git diff --name-only HEAD~1 HEAD -- 'schedules/**' | grep -E '\.(png|jpg|jpeg|PNG|JPG|JPEG)' | head -1)
+          IMAGE=$(git show --name-only --format='' HEAD -- 'schedules/**' | grep -E '\.(png|jpg|jpeg|PNG|JPG|JPEG)$' | head -1)
           echo "image=$IMAGE" >> $GITHUB_OUTPUT
           echo "Found image: $IMAGE"
 
